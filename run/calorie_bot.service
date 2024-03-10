@@ -1,0 +1,9 @@
+[Unit]
+Description=Calorie bot Daemon
+
+[Service]
+ExecStart=/usr/bin/java -jar /usr/local/lib/calorie_bot/bot.jar
+User=root
+
+[Install]
+WantedBy=multi-user.target
