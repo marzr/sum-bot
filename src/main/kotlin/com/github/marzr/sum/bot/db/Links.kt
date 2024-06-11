@@ -1,4 +1,4 @@
-package com.github.marzr.sum.bot
+package com.github.marzr.sum.bot.db
 
 import org.jetbrains.exposed.dao.LongEntity
 import org.jetbrains.exposed.dao.LongEntityClass
