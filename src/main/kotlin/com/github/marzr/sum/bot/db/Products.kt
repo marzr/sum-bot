@@ -7,7 +7,7 @@ import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 object Products : LongIdTable() {
-    val userId = long("message_id").index()
+    val userId = long("user_id").index()
     val name = varchar("name", 50)
     val calories = integer("calories")
     val createdAt = datetime("created_at")

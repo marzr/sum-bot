@@ -32,6 +32,11 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
 
     implementation("org.postgresql:postgresql:$postgresqlVersion")
+
+    testImplementation(platform("org.junit:junit-bom:5.10.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("com.h2database:h2:2.2.224")
 }
 
 tasks {
@@ -48,4 +53,11 @@ tasks {
 
 tasks.withType<ShadowJar> {
     archiveFileName.set("bot.jar")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
