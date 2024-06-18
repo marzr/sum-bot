@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 object Products : LongIdTable() {
     val userId = long("user_id").index()
-    val name = varchar("name", 50)
+    val name = varchar("name", 50).uniqueIndex()
     val calories = integer("calories")
     val createdAt = datetime("created_at")
 }

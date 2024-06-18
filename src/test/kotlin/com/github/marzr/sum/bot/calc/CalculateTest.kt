@@ -1,9 +1,9 @@
 package com.github.marzr.sum.bot.calc
 
-import com.github.marzr.sum.bot.calc.Calculations.calculateSum
+import com.github.marzr.sum.bot.action.calculateSum
+import com.github.marzr.sum.bot.action.saveProducts
 import com.github.marzr.sum.bot.db.Links
 import com.github.marzr.sum.bot.db.Products
-import com.github.marzr.sum.bot.saveProducts
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.StdOutSqlLogger
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
-class CalculationsTest {
+class CalculateTest {
 
     companion object {
         private val db by lazy {
@@ -39,14 +39,18 @@ class CalculationsTest {
             save
             каша 123
             сырок 144
+            тортик протеин рекс 160
+            Чипсеки лейз 520
         """.trimIndent()
         saveProducts(saveMessage, userId)
         val message = """
-            . каша 100 г
-            . сырок
-            кола 42*2
+            Каша 100 г
+            Сырок
+            Кола 42*2
+            Тортик протеин рекс
+            Чипсеки лейз 30 г
         """.trimIndent()
-        assertEquals(123 + 144 + 42 * 2, calculateSum(message, userId))
+        assertEquals(123 + 144 + 42 * 2 + 160 + 156, calculateSum(message, userId).first)
     }
 
     @Test

@@ -26,6 +26,8 @@ dependencies {
     implementation(libs.tg.bot)
     ksp(libs.tg.ksp)
 
+    implementation("io.arrow-kt:arrow-core:1.2.4")
+
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")

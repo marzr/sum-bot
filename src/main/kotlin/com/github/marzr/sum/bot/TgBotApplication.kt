@@ -1,18 +1,19 @@
 package com.github.marzr.sum.bot
 
-import com.github.marzr.sum.bot.calc.Calculations.calculateSum
+import com.github.marzr.sum.bot.action.calculateSum
+import com.github.marzr.sum.bot.action.deleteProducts
+import com.github.marzr.sum.bot.action.listProducts
+import com.github.marzr.sum.bot.action.saveProducts
 import com.github.marzr.sum.bot.db.Link
 import com.github.marzr.sum.bot.db.Links
-import com.github.marzr.sum.bot.db.Product
+import com.github.marzr.sum.bot.db.Products
 import eu.vendeli.tgbot.TelegramBot
 import eu.vendeli.tgbot.api.message.editMessageText
 import eu.vendeli.tgbot.api.message.message
 import eu.vendeli.tgbot.types.Message
 import eu.vendeli.tgbot.types.internal.getOrNull
 import kotlinx.datetime.toKotlinLocalDateTime
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime.now
 
@@ -20,11 +21,12 @@ suspend fun main() {
     Database.connect(
         "jdbc:postgresql://localhost:5432/sumbot",
         driver = "org.postgresql.Driver",
-        user = "sumbot",
-        password = "sumbot"
+        user = "",
+        password = ""
     )
     transaction {
-        SchemaUtils.create(Links)
+        addLogger(StdOutSqlLogger)
+        SchemaUtils.create(Links, Products)
     }
     val bot = TelegramBot("")
     bot.handleUpdates {
@@ -38,36 +40,18 @@ suspend fun main() {
 }
 
 private suspend fun handleMessage(message: Message, bot: TelegramBot) = when {
-    message.from == null -> println("ignore this message")
-    message.text?.startsWith("save") == true -> handleSaveMessage(message, bot)
-    else -> handleDefaultMessage(message, bot)
+    message.from == null || message.text == null -> println("ignore this message")
+    message.isCommand("list", "список") -> listProducts(message, bot)
+    message.isCommand("save", "сохранить") -> saveProducts(message, bot)
+    message.isCommand("delete", "удалить") -> deleteProducts(message, bot)
+    else -> handleCalculateMessage(message, bot)
 }
 
-private suspend fun handleSaveMessage(message: Message, bot: TelegramBot) {
-    runCatching {
-        saveProducts(message.text!!, message.from!!.id)
-        message("accepted").send(message.chat, bot)
-    }.onFailure {
-        message("error").send(message.chat, bot)
-    }
-}
-
-fun saveProducts(text: String, user: Long) = transaction {
-    val now = now().toKotlinLocalDateTime()
-    text.split('\n').drop(1).forEach {
-        Product.new {
-            userId = user
-            name = it.substringBeforeLast(' ')
-            calories = it.substringAfterLast(' ').toInt()
-            createdAt = now
-        }
-    }
-}
-
-private suspend fun handleDefaultMessage(message: Message, bot: TelegramBot) {
-    val sent = message(composeReplay(message)).sendAsync(message.chat, bot)
+private suspend fun handleCalculateMessage(message: Message, bot: TelegramBot) {
+    val sent = message(composeSumReply(message)).sendAsync(message.chat, bot)
     val sentId = sent.await().getOrNull()?.messageId!!
     transaction {
+        addLogger(StdOutSqlLogger)
         Link.new {
             messageId = message.messageId
             chatId = message.chat.id
@@ -77,16 +61,20 @@ private suspend fun handleDefaultMessage(message: Message, bot: TelegramBot) {
     }
 }
 
-private suspend fun handleEditedMessage(editedMessage: Message, bot: TelegramBot) {
+suspend fun handleEditedMessage(message: Message, bot: TelegramBot) {
     val replyId = transaction {
+        addLogger(StdOutSqlLogger)
         Link.find {
-            (Links.messageId eq editedMessage.messageId) and (Links.chatId eq editedMessage.chat.id)
+            (Links.messageId eq message.messageId) and (Links.chatId eq message.chat.id)
         }.firstOrNull()?.replyId
     } ?: return
-    editMessageText(replyId) { composeReplay(editedMessage) }.send(editedMessage.chat.id, bot)
+    editMessageText(replyId) { composeSumReply(message) }.send(message.chat.id, bot)
 }
 
-private fun composeReplay(message: Message): String {
-    val sum = calculateSum(message.text ?: "", message.from!!.id)
-    return "Sum = $sum"
+private fun composeSumReply(message: Message): String {
+    val (sum, warnings) = calculateSum(message.text!!, message.from!!.id)
+    return "Sum = $sum\n$warnings"
 }
+
+private fun Message.isCommand(vararg command: String) =
+    command.any { text?.startsWith(it, ignoreCase = true) == true }
